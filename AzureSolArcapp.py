@@ -114,9 +114,11 @@ if groq_api_key:
         model_name = 'openai/gpt-oss-20b' # Using a common Groq model for demonstration
                                     # or specify openai/gpt-oss-20b if available on Groq
 
-        user_query = st.text_area("Ask a question about Azure Open AI:", "")
+        with st.form("qna_form", clear_on_submit=False):
+            user_query = st.text_area("Ask a question about Azure Open AI:", "")
+            submitted = st.form_submit_button("Send")
 
-        if user_query:
+        if submitted and user_query:
             st.write("Searching for relevant documents...")
             # Newer LangChain retrievers expose `.invoke` instead of `.get_relevant_documents`
             relevant_document_chunks = retriever.invoke(user_query)
