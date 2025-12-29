@@ -19,6 +19,7 @@ groq_api_key = st.sidebar.text_input("Enter your Groq API Key:", type="password"
 # Although the current embedding model 'thenlper/gte-large' typically doesn't require
 # a Hugging Face API key for local inference, a placeholder is included if you use other models.
 hf_api_key = st.sidebar.text_input("Enter your Hugging Face API Key (optional for this model):", type="password")
+st.sidebar.link_button("Get a Groq API Key", "https://console.groq.com/keys")
 
 # --- RAG Pipeline Setup ---
 
