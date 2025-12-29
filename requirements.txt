@@ -1,9 +1,12 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
 streamlit
 groq
 langchain
 langchain-community
+langchain-text-splitters
 chromadb
 sentence-transformers
 pypdf
 tqdm
 tiktoken
+torch==2.4.1+cpu

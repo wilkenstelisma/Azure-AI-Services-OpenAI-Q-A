@@ -26,59 +26,35 @@ hf_api_key = st.sidebar.text_input("Enter your Hugging Face API Key (optional fo
 pdf_file_name = "azure-ai-services-openai_may2024.pdf"
 chroma_db_dir = "./azure-ai-services-openai_may2024_db"
 collection_name = "azure-ai-services-openai_may2024"
-
-# Initialize embedding model (ensure this model is available or downloaded locally)
-# The model 'thenlper/gte-large' is typically downloaded on first use and cached.
-embedding_model = SentenceTransformerEmbeddings(model_name='thenlper/gte-large')
+# IMPORTANT: must match the embedding model used to build the persisted DB.
+EMBEDDING_MODEL_NAME = "thenlper/gte-large"  # 1024-dim (matches shipped Chroma DB)
 
 @st.cache_resource
-def load_vectorstore(_embedding_model, collection_name, persist_directory):
+def load_vectorstore(persist_directory, collection_name):
     if not os.path.exists(persist_directory):
         st.error(f"Vector store directory not found at {persist_directory}. "
-                 "Please ensure the `azure-ai-services-openai_may2024_db` folder "
-                 "and `azure-ai-services-openai_may2024.pdf` are in the same directory as app.py.")
+                 "Please ensure the `azure-ai-services-openai_may2024_db` folder is deployed with the app.")
         st.stop()
-    
-    # If the vector store was not persisted correctly in Colab, or for first run locally
-    # you might need to re-create it. For now, assume it's persisted.
-    # However, if the PDF is not present or DB is empty, this needs handling.
+
+    try:
+        embedding_model = SentenceTransformerEmbeddings(model_name=EMBEDDING_MODEL_NAME)
+    except Exception as e:
+        st.error(f"Error loading embedding model {EMBEDDING_MODEL_NAME}: {e}")
+        st.stop()
 
     try:
         vectorstore = Chroma(
             collection_name=collection_name,
             persist_directory=persist_directory,
-            embedding_function=_embedding_model
+            embedding_function=embedding_model
         )
         st.success("Vector store loaded successfully!")
         return vectorstore
     except Exception as e:
         st.error(f"Error loading vector store: {e}")
-        st.warning("Attempting to re-create vector store from PDF. This might take a while.")
-        # Fallback: if loading fails, try to re-create from PDF if available
-        if not os.path.exists(pdf_file_name):
-             st.error(f"PDF file not found at {pdf_file_name}. Cannot re-create vector store.")
-             st.stop()
-        
-        pdf_loader = PyPDFLoader(pdf_file_name)
-        text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-            encoding_name='cl100k_base',
-            chunk_size=512,
-            chunk_overlap=16,
-            disallowed_special=()
-        )
-        Azure_AI_PDF_chunks = pdf_loader.load_and_split(text_splitter)
+        st.stop()
 
-        vectorstore = Chroma.from_documents(
-            tqdm(Azure_AI_PDF_chunks, desc="Creating vector store"), # tqdm for Colab, but won't show in Streamlit
-            embedding_model,
-            collection_name=collection_name,
-            persist_directory=persist_directory
-        )
-        vectorstore.persist()
-        st.success("Vector store re-created and loaded successfully.")
-        return vectorstore
-
-vectorstore = load_vectorstore(embedding_model, collection_name, chroma_db_dir)
+vectorstore = load_vectorstore(chroma_db_dir, collection_name)
 retriever = vectorstore.as_retriever(search_type='similarity', search_kwargs={'k': 5})
 
 # --- Q&A System Prompt ---
